@@ -1,7 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-const fs = require("fs");
+// const fs = require("fs");
+import * as fs from 'fs';
+
 
 let ignorePaths = new Set();
 
@@ -28,32 +30,66 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
+		// ideally path should be /nfs/<node>/<user>/...
+
 		let splits = path.split("/");
+
+		// so ideally splits should be ["", "nfs", "<node>", "<user>" ... ]
 
 		// detect if we are on an nfs
 		if (splits[1] !== "nfs"){
 			return;
 		}
 
-		let localPath = "/home/" + username + "/" + splits.slice(4).join("/");
+		// assert(username === splits[3])
+
+		// ignore if a subfolder is not added
+
+		if(splits.length < 5){
+			return;	
+		}
+
+		let targetPrefix = "/nfs/" + splits[2] + "/" + splits[3];
+
+		let localPrefix = "/home/" + username;
+		let relativePath = "";
+
+		for (let index = 4; index < splits.length; index++) {
+			relativePath += "/" + splits[index];
+			if (fs.existsSync(localPrefix + relativePath)){
+				continue;
+			}			
+			else{
+				break;
+			}
+		}
 		
-		if (fs.existsSync(localPath)) {
+		if (fs.existsSync(localPrefix+relativePath)) {
 			// console.log(path, "Already exists in local home");
 			ignorePaths.add(path);
 			return;
 		}
-		
-		else{
-			vscode.window.showInformationMessage("The directory: " + path + " does not seem to be present in\
-			in your local working directory, do you want to symlink it?", ...["Yes", "No"]).then((value) => {
-				// console.log(value);
-				if(value === "Yes"){
-					fs.symlink(path, "/home/" + username + "/", "dir", () => {console.log("created");} );
-				}
-				ignorePaths.add(path);
-			});
-			// fs.symlink(path, "/home/" + username + "/", "dir", () => {console.log("created");} );
-		}
+
+		// symlink path
+		let symlinkPath = localPrefix + relativePath;
+		// symlink target dir is
+		let targetDir = targetPrefix + relativePath;
+
+		// this is the local path that is not there in the current working directory
+		// this local path links the biggest possible directory
+
+	
+		vscode.window.showInformationMessage("The directory: " + path + " does not seem to be present in\
+		in your local working directory, do you want to symlink it?", ...["Yes", "No"]).then((value) => {
+			// console.log(value);
+
+			if(value === "Yes"){
+				fs.symlink(targetDir, symlinkPath, "dir", (err) => { if(err){vscode.window.showInformationMessage(err.toString());}} );
+			}
+			ignorePaths.add(path);
+		});
+		// fs.symlink(path, "/home/" + username + "/", "dir", () => {console.log("created");} );
+	
 		
 		// check if the folder exists in /home/
 		// let cluster = splits[]

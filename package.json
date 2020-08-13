@@ -7,7 +7,8 @@
 		"type": "git",
 		"url": "git@github.com:achalagarwal/autolink-vscode.git"
 	},
-	"version": "0.0.1",
+	"extensionKind": ["workspace"],
+	"version": "0.0.4",
 	"engines": {
 		"vscode": "^1.44.0"
 	},
